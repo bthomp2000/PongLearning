@@ -2,7 +2,7 @@ import random
 import time
 
 PADDLE_HEIGHT=0.2
-EXPLORE_THRESHOLD=15
+EXPLORE_THRESHOLD=200
 DECAY_RATE=0.9
 LEARNING_CONSTANT = 15
 
@@ -178,15 +178,17 @@ def tdUpdate(curr_state,next_action,next_state):
 def Q_Learning_Training():
 	#Running 20,000 games
 	average = []
-	for i in range(50000):
+	for i in range(100000):
 		first = True
 		numPaddleHits = 0
 		curr_state = State()
 		prev_discrete_state = descretize(curr_state)
-		while curr_state.reward!=-1:
-			# 
-			next_possible_actions = [exploration(descretize(curr_state), action.UP), exploration(descretize(curr_state), action.STAY), exploration(descretize(curr_state), action.DOWN)]
-			# print descretize(curr_state).toTuple(),": ",next_possible_actions
+		count = 0
+		while curr_state.reward!=-1 and count < 100000:
+			count +=1
+			discrete_curr_state = descretize(curr_state)
+			next_possible_actions = [exploration(discrete_curr_state, action.UP), exploration(discrete_curr_state, action.STAY), exploration(discrete_curr_state, action.DOWN)]
+			# print discrete_curr_state.toTuple(),": ",next_possible_actions
 			next_action = action.UP
 			max_value = next_possible_actions[0]
 			if next_possible_actions[1] > max_value:
@@ -201,35 +203,50 @@ def Q_Learning_Training():
 			# print next_state.reward
 			# if next_state.ball_x_pos > 1:
 				# print "greater than one"
-			if descretize(curr_state).toTuple() != prev_discrete_state.toTuple():
+			if discrete_curr_state.toTuple() != prev_discrete_state.toTuple():
 				# print "reward of 1"
 				
-				if(prev_discrete_state.ball_x_pos==11 and descretize(curr_state).ball_x_pos<11):
+				if(prev_discrete_state.ball_x_pos==11 and discrete_curr_state.ball_x_pos<11):
 					numPaddleHits+=1
-				prev_discrete_state=descretize(curr_state)
+				prev_discrete_state=discrete_curr_state
 
 			# if(not first):
-			tdUpdate(descretize(curr_state),next_action,descretize(next_state))
+			tdUpdate(discrete_curr_state,next_action,descretize(next_state))
 			curr_state=next_state
+			# print i,
 
-				# time.sleep(0.1)
-				# printState(descretize(curr_state))
-		# print i
-		# print numPaddleHits
+		# if i>40000:
+		# 	# time.sleep(0.05)
+		# 	# printState(discrete_curr_state)
+		# 	print numPaddleHits
 		average.append(numPaddleHits)
 		if i%1000==0:
 			print "Training iteration ",i,": average of ",sum(average)/float(len(average))," bounces"
+			average=[]
 	print sum(average)/len(average)
 		# print Q
 
 def Q_Learning_Testing():
 	average = []
 	print "Testing Data"
-	for i in range(10000):
+	for i in range(1000):
 		numPaddleHits = 0
 		curr_state = State()
 		prev_discrete_state = descretize(curr_state)
 		while curr_state.reward != -1:
+
+			next_possible_actions = [Q[getKey(descretize(curr_state), action.UP)], Q[getKey(descretize(curr_state), action.STAY)], Q[getKey(descretize(curr_state), action.DOWN)]]
+			# print descretize(curr_state).toTuple(),": ",next_possible_actions
+			next_action = action.UP
+			max_value = next_possible_actions[0]
+			if next_possible_actions[1] > max_value:
+				next_action = action.STAY
+				max_value = next_possible_actions[1]
+			if next_possible_actions[2] > max_value:
+				next_action = action.DOWN
+				max_value = next_possible_actions[2]
+
+
 			next_state = transition(curr_state,next_action)
 			if descretize(curr_state).toTuple() != prev_discrete_state.toTuple():
 				if(prev_discrete_state.ball_x_pos==11 and descretize(curr_state).ball_x_pos<11):
@@ -239,8 +256,7 @@ def Q_Learning_Testing():
 		average.append(numPaddleHits)
 		if i%1000==0:
 			print "Testing iteration ",i,": average of ",sum(average)/float(len(average))," bounces"
-	print sum(average)/len(average)
 
 initDicts()
 Q_Learning_Training()
-print Q.values()
+Q_Learning_Testing()
